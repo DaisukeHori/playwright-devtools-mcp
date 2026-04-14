@@ -121,7 +121,7 @@ async function runHTTP(): Promise<void> {
     res.json({
       status: "ok", server: SERVER_NAME, version: SERVER_VERSION,
       activeSessions: browserManager.listSessions().length,
-      uptime: process.uptime(), deploy: deployStatus,
+      uptime: Math.round(process.uptime()), deploy: deployStatus,
     });
   });
 
