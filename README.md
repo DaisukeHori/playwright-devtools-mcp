@@ -1,6 +1,6 @@
 # playwright-devtools-mcp
 
-[![Tests](https://img.shields.io/badge/tests-556%20passed-brightgreen)](https://github.com/DaisukeHori/playwright-devtools-mcp)
+[![Tests](https://img.shields.io/badge/tests-576%20passed-brightgreen)](https://github.com/DaisukeHori/playwright-devtools-mcp)
 [![Tools](https://img.shields.io/badge/MCP%20tools-57-blue)](https://github.com/DaisukeHori/playwright-devtools-mcp)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
@@ -255,6 +255,8 @@ Claude: [generate_python_requests]
 | 変数 | デフォルト | 説明 |
 |------|-----------|------|
 | `MCP_AUTH_TOKEN` | *(なし)* | Bearer認証トークン。未設定時は認証なし (開発用) |
+| `WEBHOOK_SECRET` | *(なし)* | GitHub Webhook Secret。未設定時はWebhook無効 |
+| `DEPLOY_BRANCH` | `main` | デプロイ対象ブランチ |
 | `PORT` | `3100` | HTTPサーバーポート |
 | `HOST` | `0.0.0.0` | バインドアドレス |
 | `TRANSPORT` | `http` | `http` (Streamable HTTP) or `stdio` |
@@ -264,13 +266,13 @@ Claude: [generate_python_requests]
 ## テスト
 
 ```bash
-# 全テスト実行 (401件)
+# 全テスト実行 (576件)
 npm test
 
-# 単体テストのみ (287件)
+# 単体テストのみ (307件)
 npm run test:unit
 
-# 結合テストのみ (114件)
+# 結合テストのみ (269件)
 npm run test:integration
 
 # ウォッチモード
@@ -289,6 +291,7 @@ npm run test:watch
 | flow-interactive | 51 | フロー記録・API生成・座標操作・ドラッグ・スクロール・タブ・E2Eシナリオ |
 | deep-scenarios | 58 | ネットワークボディキャプチャ・curl/Python/HAR詳細・マルチページフロー・セッション分離 |
 | comprehensive | 97 | DOM要素プロパティ全網羅・CSSスタイル検証・セキュリティヘッダー全項目・コンソール詳細・JS評価20パターン |
+| webhook | 20 | HMAC-SHA256署名検証・イベントフィルタ・ブランチフィルタ・ペイロード解析・ステータスAPI |
 
 ---
 
@@ -319,27 +322,18 @@ MIT
 
 ---
 
-## CI/CD パイプライン
+## CI/CD (GitHub Webhook 自動デプロイ)
 
-### アーキテクチャ
+`git push` → GitHub Webhook → Cloudflare Tunnel → MCP Server `/webhook/deploy` → 自動ビルド＆再起動
 
 ```
 git push (main)
-    ↓
-GitHub Actions [CI]
-  ├─ npm ci
-  ├─ playwright install chromium
-  ├─ npm run build
-  ├─ vitest run tests/unit     (287 tests)
-  └─ vitest run tests/integration (269 tests)
-    ↓ 全テスト通過
-GitHub Actions [CD]
-    ↓ POST (HMAC-SHA256署名付き)
+    ↓ GitHub Webhook (HMAC-SHA256署名付き)
 Cloudflare Tunnel
-    ↓
-deploy-agent (port 3101 on LXC)
-  ├─ 署名検証
-  ├─ git fetch + reset --hard
+    ↓ POST /webhook/deploy
+playwright-devtools-mcp (Express on LXC)
+  ├─ 署名検証 (X-Hub-Signature-256)
+  ├─ git pull
   ├─ npm ci --omit=dev
   ├─ npm run build
   └─ systemctl restart playwright-mcp
@@ -349,59 +343,54 @@ deploy-agent (port 3101 on LXC)
 
 ### セットアップ手順
 
-#### 1. LXCにワンコマンドでセットアップ
+#### 1. 環境変数追加
 
 ```bash
-# Proxmox LXC (Ubuntu 24.04) 内で実行
-curl -fsSL https://raw.githubusercontent.com/DaisukeHori/playwright-devtools-mcp/main/scripts/setup-lxc.sh | bash
+# /opt/playwright-devtools-mcp/.env に追記
+WEBHOOK_SECRET=$(openssl rand -hex 32)
+echo "WEBHOOK_SECRET=$WEBHOOK_SECRET" >> .env
+echo "Generated WEBHOOK_SECRET: $WEBHOOK_SECRET"
+
+# サービス再起動
+systemctl restart playwright-mcp
 ```
 
-このスクリプトが自動で行うこと:
-- Node.js 22 + Chromium インストール
-- リポジトリクローン + ビルド
-- MCP_AUTH_TOKEN と DEPLOY_SECRET の自動生成
-- systemd サービス作成 (playwright-mcp + deploy-agent)
-- 起動 + ヘルスチェック
+#### 2. GitHub Webhook 設定
 
-#### 2. Cloudflare Tunnel 設定
+1. リポジトリ → Settings → Webhooks → **Add webhook**
+2. **Payload URL**: `https://playwright-mcp.appserver.tokyo/webhook/deploy`
+3. **Content type**: `application/json`
+4. **Secret**: Step 1 で生成した `WEBHOOK_SECRET`
+5. **Events**: `Just the push event` を選択
+6. **Active** にチェック → **Add webhook**
 
-```yaml
-# tunnel config に2エントリ追加
-ingress:
-  - hostname: playwright-mcp.appserver.tokyo
-    service: http://<LXC_IP>:3100
-  - hostname: deploy-playwright-mcp.appserver.tokyo
-    service: http://<LXC_IP>:3101
-```
-
-#### 3. GitHub Secrets 設定
-
-リポジトリの Settings → Secrets → Actions に以下を追加:
-
-| Secret名 | 値 |
-|----------|-----|
-| `DEPLOY_WEBHOOK_URL` | `https://deploy-playwright-mcp.appserver.tokyo/webhook` |
-| `DEPLOY_WEBHOOK_SECRET` | setup-lxc.sh が出力した `DEPLOY_SECRET` 値 |
-
-#### 4. 動作確認
+#### 3. 動作確認
 
 ```bash
-# 何か変更してpush
-git add . && git commit -m "test: CI/CD pipeline" && git push
+# コード変更してpush
+echo "# test" >> README.md && git add -A && git commit -m "test deploy" && git push
 
-# GitHub Actions タブで確認:
-#   test ジョブ → 556テスト全パス
-#   deploy ジョブ → webhook呼び出し成功
+# デプロイ状況確認
+curl https://playwright-mcp.appserver.tokyo/webhook/status
 
-# LXCで確認:
-journalctl -u deploy-agent -f  # デプロイログ
-journalctl -u playwright-mcp -f  # MCPサーバーログ
+# デプロイログ確認
+curl https://playwright-mcp.appserver.tokyo/webhook/log
+
+# ヘルスチェック
 curl https://playwright-mcp.appserver.tokyo/health
 ```
 
-### Deploy Agent エンドポイント
+### Webhookエンドポイント
 
-| エンドポイント | メソッド | 説明 |
-|-------------|---------|------|
-| `/health` | GET | ステータス確認 |
-| `/webhook` | POST | デプロイ実行 (HMAC-SHA256署名必須) |
+| エンドポイント | メソッド | 認証 | 説明 |
+|-------------|---------|------|------|
+| `/webhook/deploy` | POST | HMAC-SHA256 | GitHub Webhookからのデプロイトリガー |
+| `/webhook/status` | GET | なし | 最終デプロイ状態 (lastStatus, lastCommit, deployCount) |
+| `/webhook/log` | GET | なし | deploy.log の末尾200行 |
+
+### 環境変数 (追加分)
+
+| 変数 | デフォルト | 説明 |
+|------|-----------|------|
+| `WEBHOOK_SECRET` | *(なし)* | GitHub Webhook Secret。未設定時はWebhook無効 |
+| `DEPLOY_BRANCH` | `main` | デプロイ対象ブランチ |
