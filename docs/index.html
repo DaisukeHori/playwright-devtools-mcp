@@ -325,6 +325,99 @@ curl https://playwright-mcp.appserver.tokyo/health</pre></div>
   </div>
 </section>
 
+
+<section style="background:var(--surface)">
+  <div class="container">
+    <div class="section-title">CI/CD 自動デプロイ</div>
+    <div class="section-subtitle">git push するだけで本番反映</div>
+    <div class="arch-diagram">
+      <span class="highlight">git push (main)</span><br>
+      <span class="arrow">↓</span> GitHub Webhook (HMAC-SHA256)<br>
+      <span class="highlight">Cloudflare Tunnel</span><br>
+      <span class="arrow">↓</span> POST /webhook/deploy<br>
+      <span class="highlight">scripts/deploy.sh</span> (detached process)<br>
+      git pull → npm ci → build → systemctl restart<br>
+      <span class="arrow">↓</span><br>
+      <span class="highlight">✅ 新バージョン稼働中</span>
+    </div>
+    <div style="margin-top:1.5rem;display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1rem">
+      <div style="background:var(--surface2);padding:1rem;border-radius:8px;border:1px solid var(--border)">
+        <div style="font-size:1.2rem;margin-bottom:.3rem">🔐</div>
+        <div style="font-size:.85rem;color:var(--text2)">HMAC-SHA256署名検証で不正リクエストをブロック</div>
+      </div>
+      <div style="background:var(--surface2);padding:1rem;border-radius:8px;border:1px solid var(--border)">
+        <div style="font-size:1.2rem;margin-bottom:.3rem">🔄</div>
+        <div style="font-size:.85rem;color:var(--text2)">排他ロックで同時デプロイ防止</div>
+      </div>
+      <div style="background:var(--surface2);padding:1rem;border-radius:8px;border:1px solid var(--border)">
+        <div style="font-size:1.2rem;margin-bottom:.3rem">💪</div>
+        <div style="font-size:.85rem;color:var(--text2)">detached processでサーバー再起動に耐える</div>
+      </div>
+      <div style="background:var(--surface2);padding:1rem;border-radius:8px;border:1px solid var(--border)">
+        <div style="font-size:1.2rem;margin-bottom:.3rem">🏥</div>
+        <div style="font-size:.85rem;color:var(--text2)">restart後にヘルスチェック自動実行</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="container">
+    <div class="section-title">コード例: リバースエンジニアリング</div>
+    <div class="section-subtitle">AIとの対話でWebアプリのAPIを解析</div>
+    <div class="code-block">
+      <div class="code-header"><span class="lang">対話例</span></div>
+<pre><span class="comment">あなた: 「このWebアプリのログインAPIを解析したい」</span>
+
+<span class="func">Claude</span>: browser_launch → flow_start_recording → browser_navigate
+        → interact_screenshot_annotate <span class="comment">(グリッド付き画面確認)</span>
+        <span class="string">「ログインフォームが見えます。認証情報を教えてください。」</span>
+
+<span class="comment">あなた: 「user: admin@test.com  pass: P@ssw0rd」</span>
+
+<span class="func">Claude</span>: interact_fill_form(#email) → interact_fill_form(#password)
+        → interact_click_at(<span class="keyword">submitボタン座標</span>)
+        → flow_get_captured_api_calls
+        <span class="string">「3つのAPIコールを検出:
+         1. POST /api/auth/login → 200
+         2. GET /api/user/profile → 200
+         3. GET /api/dashboard → 200」</span>
+
+<span class="comment">あなた: 「curlで再現して」</span>
+
+<span class="func">Claude</span>: generate_curl_commands →
+<span class="keyword">curl</span> -X POST <span class="string">'https://app.example.com/api/auth/login'</span> \
+  -H <span class="string">'Content-Type: application/json'</span> \
+  -d <span class="string">'{"email":"admin@test.com","password":"P@ssw0rd"}'</span></pre>
+    </div>
+  </div>
+</section>
+
+<section style="background:var(--surface)">
+  <div class="container">
+    <div class="section-title">FAQ</div>
+    <div class="section-subtitle">よくある質問</div>
+    <div style="display:grid;gap:1rem">
+      <div style="background:var(--bg);padding:1.2rem;border-radius:8px;border:1px solid var(--border)">
+        <div style="font-weight:700;margin-bottom:.3rem;color:var(--accent)">Q: なぜMicrosoft公式のPlaywright MCPではなくこれを使うのか？</div>
+        <div style="font-size:.85rem;color:var(--text2)">公式MCPはDOM操作中心で、devtoolsフラグは限定的。本MCPはCDPでリクエスト/レスポンスボディまで完全キャプチャし、curl/Python/API仕様書を自動生成するリバースエンジニアリング特化設計。</div>
+      </div>
+      <div style="background:var(--bg);padding:1.2rem;border-radius:8px;border:1px solid var(--border)">
+        <div style="font-weight:700;margin-bottom:.3rem;color:var(--accent)">Q: Claude.AIのIPアドレス制限に引っかからない？</div>
+        <div style="font-size:.85rem;color:var(--text2)">Proxmoxセルフホストのため、対象サイトにアクセスするIPはあなたのサーバーIP。Anthropicクラウドからのアクセスは/mcp エンドポイントのみ。</div>
+      </div>
+      <div style="background:var(--bg);padding:1.2rem;border-radius:8px;border:1px solid var(--border)">
+        <div style="font-weight:700;margin-bottom:.3rem;color:var(--accent)">Q: 複数のクライアントから同時接続できる？</div>
+        <div style="font-size:.85rem;color:var(--text2)">はい。各browser_launchがユニークなsession_idを返し、セッションは完全に分離。Claude.AI, Claude Desktop, Claude Codeから同時利用可能。</div>
+      </div>
+      <div style="background:var(--bg);padding:1.2rem;border-radius:8px;border:1px solid var(--border)">
+        <div style="font-weight:700;margin-bottom:.3rem;color:var(--accent)">Q: メモリ使用量は？</div>
+        <div style="font-size:.85rem;color:var(--text2)">Chromiumインスタンスあたり約200-400MB。LXCに4GB以上推奨。browser_closeで不要セッションを解放してください。</div>
+      </div>
+    </div>
+  </div>
+</section>
+
 <footer>
   <div class="container">
     <p><strong>playwright-devtools-mcp</strong> — MIT License — <a href="https://github.com/DaisukeHori/playwright-devtools-mcp">GitHub</a></p>
