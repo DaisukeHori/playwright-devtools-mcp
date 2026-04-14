@@ -316,3 +316,92 @@ MIT
 - [Microsoft Playwright MCP](https://github.com/microsoft/playwright-mcp) — 公式ブラウザ自動化MCP
 - [Playwright](https://playwright.dev/) — ブラウザ自動化フレームワーク
 - [MCP Specification](https://modelcontextprotocol.io/) — Model Context Protocol仕様
+
+---
+
+## CI/CD パイプライン
+
+### アーキテクチャ
+
+```
+git push (main)
+    ↓
+GitHub Actions [CI]
+  ├─ npm ci
+  ├─ playwright install chromium
+  ├─ npm run build
+  ├─ vitest run tests/unit     (287 tests)
+  └─ vitest run tests/integration (269 tests)
+    ↓ 全テスト通過
+GitHub Actions [CD]
+    ↓ POST (HMAC-SHA256署名付き)
+Cloudflare Tunnel
+    ↓
+deploy-agent (port 3101 on LXC)
+  ├─ 署名検証
+  ├─ git fetch + reset --hard
+  ├─ npm ci --omit=dev
+  ├─ npm run build
+  └─ systemctl restart playwright-mcp
+    ↓
+✅ 新バージョンが稼働中
+```
+
+### セットアップ手順
+
+#### 1. LXCにワンコマンドでセットアップ
+
+```bash
+# Proxmox LXC (Ubuntu 24.04) 内で実行
+curl -fsSL https://raw.githubusercontent.com/DaisukeHori/playwright-devtools-mcp/main/scripts/setup-lxc.sh | bash
+```
+
+このスクリプトが自動で行うこと:
+- Node.js 22 + Chromium インストール
+- リポジトリクローン + ビルド
+- MCP_AUTH_TOKEN と DEPLOY_SECRET の自動生成
+- systemd サービス作成 (playwright-mcp + deploy-agent)
+- 起動 + ヘルスチェック
+
+#### 2. Cloudflare Tunnel 設定
+
+```yaml
+# tunnel config に2エントリ追加
+ingress:
+  - hostname: playwright-mcp.appserver.tokyo
+    service: http://<LXC_IP>:3100
+  - hostname: deploy-playwright-mcp.appserver.tokyo
+    service: http://<LXC_IP>:3101
+```
+
+#### 3. GitHub Secrets 設定
+
+リポジトリの Settings → Secrets → Actions に以下を追加:
+
+| Secret名 | 値 |
+|----------|-----|
+| `DEPLOY_WEBHOOK_URL` | `https://deploy-playwright-mcp.appserver.tokyo/webhook` |
+| `DEPLOY_WEBHOOK_SECRET` | setup-lxc.sh が出力した `DEPLOY_SECRET` 値 |
+
+#### 4. 動作確認
+
+```bash
+# 何か変更してpush
+git add . && git commit -m "test: CI/CD pipeline" && git push
+
+# GitHub Actions タブで確認:
+#   test ジョブ → 556テスト全パス
+#   deploy ジョブ → webhook呼び出し成功
+
+# LXCで確認:
+journalctl -u deploy-agent -f  # デプロイログ
+journalctl -u playwright-mcp -f  # MCPサーバーログ
+curl https://playwright-mcp.appserver.tokyo/health
+```
+
+### Deploy Agent エンドポイント
+
+| エンドポイント | メソッド | 説明 |
+|-------------|---------|------|
+| `/health` | GET | ステータス確認 |
+| `/webhook` | POST | デプロイ実行 (HMAC-SHA256署名必須) |

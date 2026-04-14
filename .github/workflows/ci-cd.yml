@@ -1,0 +1,81 @@
+name: CI/CD
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+env:
+  NODE_VERSION: '22'
+
+jobs:
+  # ────────────────────────────────────────────────────────────────
+  # CI: Build & Test
+  # ────────────────────────────────────────────────────────────────
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright Chromium
+        run: npx playwright install chromium --with-deps
+
+      - name: Build
+        run: npm run build
+
+      - name: Run unit tests
+        run: npx vitest run tests/unit --reporter=verbose
+
+      - name: Run integration tests
+        run: npx vitest run tests/integration --reporter=verbose
+        timeout-minutes: 10
+
+  # ────────────────────────────────────────────────────────────────
+  # CD: Deploy to Proxmox LXC via Webhook
+  # ────────────────────────────────────────────────────────────────
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    timeout-minutes: 3
+
+    steps:
+      - name: Trigger deploy webhook
+        env:
+          DEPLOY_WEBHOOK_URL: ${{ secrets.DEPLOY_WEBHOOK_URL }}
+          DEPLOY_WEBHOOK_SECRET: ${{ secrets.DEPLOY_WEBHOOK_SECRET }}
+        run: |
+          TIMESTAMP=$(date +%s)
+          BODY="{\"ref\":\"${{ github.ref }}\",\"sha\":\"${{ github.sha }}\",\"timestamp\":${TIMESTAMP}}"
+          SIGNATURE=$(echo -n "$BODY" | openssl dgst -sha256 -hmac "$DEPLOY_WEBHOOK_SECRET" | awk '{print $2}')
+
+          HTTP_CODE=$(curl -s -o /tmp/deploy_response.txt -w "%{http_code}" \
+            -X POST "$DEPLOY_WEBHOOK_URL" \
+            -H "Content-Type: application/json" \
+            -H "X-Deploy-Signature: sha256=${SIGNATURE}" \
+            -H "X-GitHub-Event: push" \
+            -d "$BODY" \
+            --max-time 120)
+
+          echo "HTTP Status: $HTTP_CODE"
+          cat /tmp/deploy_response.txt
+          echo ""
+
+          if [ "$HTTP_CODE" -ne 200 ]; then
+            echo "::error::Deploy webhook returned HTTP $HTTP_CODE"
+            exit 1
+          fi
+
+          echo "✅ Deploy triggered successfully"
