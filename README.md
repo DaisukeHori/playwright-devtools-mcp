@@ -1,6 +1,6 @@
 # playwright-devtools-mcp
 
-[![Tests](https://img.shields.io/badge/tests-401%20passed-brightgreen)](https://github.com/DaisukeHori/playwright-devtools-mcp)
+[![Tests](https://img.shields.io/badge/tests-556%20passed-brightgreen)](https://github.com/DaisukeHori/playwright-devtools-mcp)
 [![Tools](https://img.shields.io/badge/MCP%20tools-57-blue)](https://github.com/DaisukeHori/playwright-devtools-mcp)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
@@ -287,6 +287,8 @@ npm run test:watch
 | edge-cases | 85 | 全57ツールのセッション不正エラー・起動オプション・レスポンス形式 |
 | browser-basic | 63 | ブラウザ操作・コンソール・ネットワーク・ストレージ・DOM・パフォーマンス・セキュリティ |
 | flow-interactive | 51 | フロー記録・API生成・座標操作・ドラッグ・スクロール・タブ・E2Eシナリオ |
+| deep-scenarios | 58 | ネットワークボディキャプチャ・curl/Python/HAR詳細・マルチページフロー・セッション分離 |
+| comprehensive | 97 | DOM要素プロパティ全網羅・CSSスタイル検証・セキュリティヘッダー全項目・コンソール詳細・JS評価20パターン |
 
 ---
 
