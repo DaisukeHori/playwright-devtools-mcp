@@ -31,7 +31,12 @@ Returns:
           return makeError(params.session_id, "NO_DATA", "No document response headers. Navigate to a page first.");
         }
 
-        const headers = mainDoc.responseHeaders;
+        const rawHeaders = mainDoc.responseHeaders;
+        // Normalize headers to lowercase for comparison
+        const headers: Record<string, string> = {};
+        for (const [k, v] of Object.entries(rawHeaders)) {
+          headers[k.toLowerCase()] = v;
+        }
         const analysis: SecurityHeaderAnalysis[] = [];
 
         const checks: Array<{ header: string; check: (v: string | undefined) => SecurityHeaderAnalysis }> = [

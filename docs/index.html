@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Playwright DevTools MCP — AI-Powered Browser Reverse Engineering</title>
+<meta name="description" content="57 tools for browser automation, network capture, and API spec generation via Chrome DevTools Protocol. Self-hosted MCP server for Claude.AI.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Outfit:wght@300;500;700;900&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#0a0a0f;--surface:#12121a;--surface2:#1a1a28;--border:#2a2a3a;--accent:#00ff88;--accent2:#00d4ff;--accent3:#ff6b35;--text:#e4e4f0;--text2:#8888aa;--mono:'JetBrains Mono',monospace;--sans:'Outfit',sans-serif}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);line-height:1.6;overflow-x:hidden}
+a{color:var(--accent);text-decoration:none}
+a:hover{text-decoration:underline}
+
+/* Hero */
+.hero{min-height:100vh;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:2rem;position:relative;overflow:hidden}
+.hero::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 30% 50%,rgba(0,255,136,.06),transparent 60%),radial-gradient(ellipse at 70% 30%,rgba(0,212,255,.05),transparent 60%);pointer-events:none}
+.hero-badge{font-family:var(--mono);font-size:.75rem;color:var(--accent);border:1px solid rgba(0,255,136,.3);padding:.3rem .8rem;border-radius:99px;margin-bottom:1.5rem;letter-spacing:.1em;text-transform:uppercase;animation:fadeIn .8s ease-out}
+.hero h1{font-size:clamp(2.5rem,7vw,5rem);font-weight:900;line-height:1.05;margin-bottom:1rem;animation:fadeIn 1s ease-out}
+.hero h1 .accent{background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.hero p{font-size:1.2rem;color:var(--text2);max-width:700px;margin-bottom:2rem;font-weight:300;animation:fadeIn 1.2s ease-out}
+.hero-stats{display:flex;gap:2rem;margin-bottom:2.5rem;animation:fadeIn 1.4s ease-out}
+.stat{text-align:center}
+.stat-num{font-size:2.5rem;font-weight:900;font-family:var(--mono);color:var(--accent)}
+.stat-label{font-size:.75rem;color:var(--text2);text-transform:uppercase;letter-spacing:.1em}
+.hero-buttons{display:flex;gap:1rem;flex-wrap:wrap;justify-content:center;animation:fadeIn 1.6s ease-out}
+.btn{padding:.8rem 2rem;border-radius:8px;font-family:var(--sans);font-weight:700;font-size:.95rem;border:none;cursor:pointer;transition:all .2s}
+.btn-primary{background:var(--accent);color:var(--bg)}
+.btn-primary:hover{background:#33ffaa;text-decoration:none;transform:translateY(-2px);box-shadow:0 4px 20px rgba(0,255,136,.3)}
+.btn-ghost{border:1px solid var(--border);color:var(--text);background:transparent}
+.btn-ghost:hover{border-color:var(--accent);color:var(--accent);text-decoration:none}
+
+/* Sections */
+section{padding:5rem 2rem}
+.container{max-width:1100px;margin:0 auto}
+.section-title{font-size:2rem;font-weight:900;margin-bottom:.5rem}
+.section-subtitle{color:var(--text2);margin-bottom:3rem;font-weight:300}
+
+/* Features grid */
+.features{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1.5rem}
+.feature{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:1.5rem;transition:all .3s}
+.feature:hover{border-color:var(--accent);transform:translateY(-4px);box-shadow:0 8px 30px rgba(0,255,136,.08)}
+.feature-icon{font-size:1.8rem;margin-bottom:.8rem}
+.feature h3{font-size:1.1rem;margin-bottom:.4rem;font-weight:700}
+.feature p{font-size:.85rem;color:var(--text2);line-height:1.5}
+.feature .tools{font-family:var(--mono);font-size:.7rem;color:var(--accent);margin-top:.6rem;opacity:.7}
+
+/* How it works */
+.workflow{display:grid;grid-template-columns:1fr;gap:1.5rem;counter-reset:step}
+.step{display:grid;grid-template-columns:3rem 1fr;gap:1rem;align-items:start;counter-increment:step;padding:1.5rem;background:var(--surface);border-radius:12px;border:1px solid var(--border)}
+.step::before{content:counter(step);font-family:var(--mono);font-size:1.5rem;font-weight:900;color:var(--accent);width:3rem;height:3rem;display:flex;align-items:center;justify-content:center;border:2px solid var(--accent);border-radius:50%}
+.step h3{font-size:1rem;margin-bottom:.3rem}
+.step p{font-size:.85rem;color:var(--text2)}
+
+/* Code block */
+.code-block{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin:2rem 0}
+.code-header{display:flex;justify-content:space-between;align-items:center;padding:.6rem 1rem;background:var(--surface2);border-bottom:1px solid var(--border);font-family:var(--mono);font-size:.75rem;color:var(--text2)}
+.code-header .lang{color:var(--accent)}
+pre{padding:1.2rem;overflow-x:auto;font-family:var(--mono);font-size:.8rem;line-height:1.7;color:var(--text)}
+pre .comment{color:#555}
+pre .keyword{color:var(--accent2)}
+pre .string{color:var(--accent)}
+pre .func{color:var(--accent3)}
+
+/* Architecture */
+.arch-diagram{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:2rem;font-family:var(--mono);font-size:.8rem;line-height:1.8;text-align:center;color:var(--text2)}
+.arch-diagram .highlight{color:var(--accent);font-weight:700}
+.arch-diagram .arrow{color:var(--accent2);font-size:1.2rem}
+
+/* Deploy steps */
+.deploy-steps{display:grid;gap:1.5rem}
+.deploy-step{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:1.5rem}
+.deploy-step h3{font-size:1rem;margin-bottom:.5rem;display:flex;align-items:center;gap:.5rem}
+.deploy-step h3 .num{background:var(--accent);color:var(--bg);font-family:var(--mono);font-size:.75rem;font-weight:900;width:1.5rem;height:1.5rem;display:inline-flex;align-items:center;justify-content:center;border-radius:50%}
+
+/* Footer */
+footer{border-top:1px solid var(--border);padding:3rem 2rem;text-align:center;color:var(--text2);font-size:.85rem}
+
+/* Animations */
+@keyframes fadeIn{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+@media(max-width:600px){.hero-stats{flex-direction:column;gap:1rem}.hero-buttons{flex-direction:column}}
+</style>
+</head>
+<body>
+
+<section class="hero">
+  <div class="hero-badge">Open Source MCP Server</div>
+  <h1>Playwright <span class="accent">DevTools</span> MCP</h1>
+  <p>AIがブラウザ操作を追跡し、通信を完全キャプチャ。curl / Python requests で再現可能なAPI仕様書を自動生成するリバースエンジニアリングMCPサーバー。</p>
+  <div class="hero-stats">
+    <div class="stat"><div class="stat-num">57</div><div class="stat-label">ツール</div></div>
+    <div class="stat"><div class="stat-num">401</div><div class="stat-label">テスト</div></div>
+    <div class="stat"><div class="stat-num">10</div><div class="stat-label">カテゴリ</div></div>
+    <div class="stat"><div class="stat-num">CDP</div><div class="stat-label">フルキャプチャ</div></div>
+  </div>
+  <div class="hero-buttons">
+    <a href="https://github.com/DaisukeHori/playwright-devtools-mcp" class="btn btn-primary">GitHub →</a>
+    <a href="#quickstart" class="btn btn-ghost">クイックスタート</a>
+    <a href="#features" class="btn btn-ghost">機能一覧</a>
+  </div>
+</section>
+
+<section id="features">
+  <div class="container">
+    <div class="section-title">機能カテゴリ</div>
+    <div class="section-subtitle">F12開発者ツールの全機能をAIから操作可能に</div>
+    <div class="features">
+      <div class="feature">
+        <div class="feature-icon">🌐</div>
+        <h3>ブラウザ操作</h3>
+        <p>Chromium起動、ナビゲーション、クリック、タイピング、JS実行、スクリーンショット</p>
+        <div class="tools">browser_launch, browser_navigate, browser_click, browser_type, browser_evaluate, browser_screenshot +3</div>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">🔌</div>
+        <h3>ネットワークキャプチャ</h3>
+        <p>CDP Network.getResponseBodyでリクエスト/レスポンスのボディまで完全取得。XHR/Fetchを自動識別。</p>
+        <div class="tools">network_get_requests, network_get_failed, network_get_summary, network_clear</div>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">📝</div>
+        <h3>フロー記録</h3>
+        <p>ユーザー操作を追跡し、APIコールを自動でフローに記録。アノテーション追加も可能。</p>
+        <div class="tools">flow_start_recording, flow_stop_recording, flow_add_step, flow_get_steps, flow_get_captured_api_calls</div>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">⚡</div>
+        <h3>API仕様書生成</h3>
+        <p>キャプチャからcurl、Python requests、Markdown API仕様書、HAR (1.2) を自動生成。</p>
+        <div class="tools">generate_curl_commands, generate_python_requests, generate_api_spec, generate_har</div>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">🖱️</div>
+        <h3>インタラクティブ操作</h3>
+        <p>座標クリック、ドラッグ&ドロップ、スクロール、キーボード、フォーム入力、タブ管理。グリッド付きスクリーンショットで座標特定。</p>
+        <div class="tools">interact_click_at, interact_drag, interact_scroll, interact_keyboard, interact_fill_form +8</div>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">📋</div>
+        <h3>コンソール</h3>
+        <p>console.log/warn/error、ページエラー、CDPログをリアルタイム収集。フィルタリング・検索対応。</p>
+        <div class="tools">console_get_logs, console_clear_logs, console_get_exceptions</div>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">⏱️</div>
+        <h3>パフォーマンス</h3>
+        <p>CDPメトリクス、Navigation Timing、Core Web Vitals (LCP/CLS/FCP/TTFB)、Resource Timing。</p>
+        <div class="tools">performance_get_metrics, performance_get_navigation_timing, performance_get_core_web_vitals, performance_get_resource_timing</div>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">💾</div>
+        <h3>ストレージ</h3>
+        <p>localStorage、sessionStorage、Cookie (セキュリティ属性込み)、IndexedDB。選択クリアも可能。</p>
+        <div class="tools">storage_get_local_storage, storage_get_session_storage, storage_get_cookies, storage_get_indexeddb_info, storage_clear_data</div>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">🔍</div>
+        <h3>DOM / デバッグ</h3>
+        <p>DOM Tree構造、要素プロパティ (computed styles/boundingBox)、ページソース、アクセシビリティツリー。</p>
+        <div class="tools">debug_get_dom_tree, debug_get_element_properties, debug_get_page_source, debug_get_accessibility_tree, debug_query_selector_all</div>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">🔒</div>
+        <h3>セキュリティ</h3>
+        <p>HSTS/CSP/X-Frame-Optionsなどセキュリティヘッダー分析。SSL証明書情報、Mixed Content検出。</p>
+        <div class="tools">security_analyze_headers, security_get_certificate, security_check_mixed_content</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section style="background:var(--surface)">
+  <div class="container">
+    <div class="section-title">使い方: リバースエンジニアリング</div>
+    <div class="section-subtitle">AIとの対話でWebアプリのAPIを解析</div>
+    <div class="workflow">
+      <div class="step"><div></div><div><h3>ブラウザ起動 & フロー記録開始</h3><p>AIがChromiumを起動し、操作の記録を開始します。CDPによるフルネットワークキャプチャが自動的に有効になります。</p></div></div>
+      <div class="step"><div></div><div><h3>操作をAIに指示</h3><p>「ログインページに行って」「ユーザー名にadminを入力して」「送信ボタンを押して」 — AIがPlaywrightで操作を実行しながら、全通信をキャプチャします。</p></div></div>
+      <div class="step"><div></div><div><h3>キャプチャ確認</h3><p>AIが検出したAPIコール (XHR/Fetch) を確認。リクエストヘッダー、ボディ、レスポンスの全内容が取得されています。</p></div></div>
+      <div class="step"><div></div><div><h3>API仕様書生成</h3><p>curlコマンド、Python requestsスクリプト、Markdown形式のAPI仕様書、HAR (Chrome DevTools Import用) を自動生成。</p></div></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="container">
+    <div class="section-title">アーキテクチャ</div>
+    <div class="section-subtitle">Proxmoxセルフホスト + Cloudflare Tunnel</div>
+    <div class="arch-diagram">
+      <span class="highlight">Claude.AI / Claude Desktop / Claude Code</span><br>
+      <span class="arrow">↓</span> HTTPS (Streamable HTTP + Bearer Token)<br>
+      <span class="highlight">Cloudflare Tunnel</span> (*.appserver.tokyo)<br>
+      <span class="arrow">↓</span><br>
+      <span class="highlight">Proxmox LXC Container</span><br>
+      <span class="arrow">↓</span><br>
+      <span class="highlight">playwright-devtools-mcp</span> (Express + MCP SDK)<br>
+      <span class="arrow">↓</span><br>
+      <span class="highlight">Chromium (headless)</span> + CDP Session<br>
+      <span class="arrow">↓</span><br>
+      Full request/response capture → <span class="highlight">curl / Python / API Spec / HAR 生成</span>
+    </div>
+  </div>
+</section>
+
+<section id="quickstart" style="background:var(--surface)">
+  <div class="container">
+    <div class="section-title">デプロイ手順</div>
+    <div class="section-subtitle">Proxmox LXC → Cloudflare Tunnel → Claude.AI 接続まで</div>
+    <div class="deploy-steps">
+      <div class="deploy-step">
+        <h3><span class="num">1</span> Proxmox LXC作成</h3>
+        <div class="code-block"><div class="code-header"><span class="lang">bash</span></div>
+<pre><span class="comment"># Ubuntu 24.04 LXC作成 (2CPU, 4GB RAM, 20GB disk)</span>
+pct create 310 local:vztmpl/ubuntu-24.04-standard_24.04-2_amd64.tar.zst \
+  --hostname playwright-mcp --memory 4096 --cores 2 --rootfs local-lvm:20 \
+  --net0 name=eth0,bridge=vmbr0,ip=dhcp --features nesting=1
+pct start 310 && pct enter 310</pre></div>
+      </div>
+      <div class="deploy-step">
+        <h3><span class="num">2</span> Node.js & Chromium インストール</h3>
+        <div class="code-block"><div class="code-header"><span class="lang">bash</span></div>
+<pre><span class="comment"># Node.js 22 LTS</span>
+curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
+apt-get install -y nodejs git
+
+<span class="comment"># リポジトリクローン & ビルド</span>
+cd /opt
+git clone https://github.com/DaisukeHori/playwright-devtools-mcp.git
+cd playwright-devtools-mcp
+npm install
+npx playwright install chromium --with-deps
+npm run build</pre></div>
+      </div>
+      <div class="deploy-step">
+        <h3><span class="num">3</span> systemdサービス設定</h3>
+        <div class="code-block"><div class="code-header"><span class="lang">bash</span></div>
+<pre><span class="comment"># 認証トークン生成</span>
+TOKEN=$(openssl rand -hex 32)
+echo "MCP_AUTH_TOKEN=$TOKEN" &gt; /opt/playwright-devtools-mcp/.env
+
+<span class="comment"># systemd unit</span>
+cat &gt; /etc/systemd/system/playwright-mcp.service &lt;&lt;EOF
+[Unit]
+Description=Playwright DevTools MCP
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/playwright-devtools-mcp
+EnvironmentFile=/opt/playwright-devtools-mcp/.env
+ExecStart=/usr/bin/node dist/index.js
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+systemctl enable --now playwright-mcp
+systemctl status playwright-mcp</pre></div>
+      </div>
+      <div class="deploy-step">
+        <h3><span class="num">4</span> Cloudflare Tunnel設定</h3>
+        <div class="code-block"><div class="code-header"><span class="lang">bash</span></div>
+<pre><span class="comment"># cloudflaredインストール (ホストまたはLXC内)</span>
+<span class="comment"># tunnel configにエントリ追加:</span>
+- hostname: playwright-mcp.appserver.tokyo
+  service: http://&lt;LXC_IP&gt;:3100
+  
+<span class="comment"># ヘルスチェック確認</span>
+curl https://playwright-mcp.appserver.tokyo/health</pre></div>
+      </div>
+      <div class="deploy-step">
+        <h3><span class="num">5</span> Claude.AI コネクタ登録</h3>
+        <div class="code-block"><div class="code-header"><span class="lang">手順</span></div>
+<pre>1. claude.ai → Settings → Connectors → Add Custom Connector
+2. URL: https://playwright-mcp.appserver.tokyo/mcp
+3. Advanced Settings → Authorization Token: (Step 3で生成したトークン)
+4. 接続後、ツール一覧に57ツールが表示されることを確認
+5. チャットで「ブラウザを起動して example.com を開いて」とテスト</pre></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="container">
+    <div class="section-title">対応クライアント</div>
+    <div class="section-subtitle">Streamable HTTP + stdio 両対応</div>
+    <div class="features" style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr))">
+      <div class="feature" style="text-align:center">
+        <div class="feature-icon">🌐</div>
+        <h3>Claude.AI</h3>
+        <p>Custom Connector (Streamable HTTP)</p>
+      </div>
+      <div class="feature" style="text-align:center">
+        <div class="feature-icon">🖥️</div>
+        <h3>Claude Desktop</h3>
+        <p>stdio or Connector</p>
+      </div>
+      <div class="feature" style="text-align:center">
+        <div class="feature-icon">⌨️</div>
+        <h3>Claude Code</h3>
+        <p>claude mcp add</p>
+      </div>
+      <div class="feature" style="text-align:center">
+        <div class="feature-icon">📱</div>
+        <h3>Claude Mobile</h3>
+        <p>Connector経由</p>
+      </div>
+      <div class="feature" style="text-align:center">
+        <div class="feature-icon">🔧</div>
+        <h3>Cursor / VS Code</h3>
+        <p>MCP HTTP endpoint</p>
+      </div>
+      <div class="feature" style="text-align:center">
+        <div class="feature-icon">🤖</div>
+        <h3>Anthropic API</h3>
+        <p>mcp_servers parameter</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="container">
+    <p><strong>playwright-devtools-mcp</strong> — MIT License — <a href="https://github.com/DaisukeHori/playwright-devtools-mcp">GitHub</a></p>
+    <p style="margin-top:.5rem;font-size:.75rem">Built with Playwright, Chrome DevTools Protocol, MCP TypeScript SDK</p>
+  </div>
+</footer>
+
+</body>
+</html>
