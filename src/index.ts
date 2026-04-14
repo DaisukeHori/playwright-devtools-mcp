@@ -43,11 +43,22 @@ const AUTH_TOKEN = process.env.MCP_AUTH_TOKEN;
 
 function authenticateRequest(req: express.Request, res: express.Response): boolean {
   if (!AUTH_TOKEN) return true;
+
+  // 1. Query parameter: ?key=xxx
+  const queryKey = req.query.key as string | undefined;
+  if (queryKey && queryKey === AUTH_TOKEN) return true;
+
+  // 2. Authorization: Bearer xxx
   const authHeader = req.headers.authorization;
-  if (!authHeader) { res.status(401).json({ error: "Missing Authorization header" }); return false; }
-  const token = authHeader.replace(/^Bearer\s+/i, "");
-  if (token !== AUTH_TOKEN) { res.status(403).json({ error: "Invalid token" }); return false; }
-  return true;
+  if (authHeader) {
+    const token = authHeader.replace(/^Bearer\s+/i, "");
+    if (token === AUTH_TOKEN) return true;
+    res.status(403).json({ error: "Invalid token" });
+    return false;
+  }
+
+  res.status(401).json({ error: "Missing authentication. Use ?key=TOKEN or Authorization: Bearer TOKEN" });
+  return false;
 }
 
 // ─── GitHub Webhook HMAC-SHA256 ─────────────────────────────────
