@@ -56,7 +56,7 @@ git log --oneline "$BEFORE..$AFTER" | head -10
 # ─── Step 2: npm install ─────────────────────────────────────────
 echo ""
 echo "[2/5] npm install..."
-npm ci --omit=dev 2>&1 | tail -3
+npm ci 2>&1 | tail -3
 
 # ─── Step 3: Build ───────────────────────────────────────────────
 echo ""
