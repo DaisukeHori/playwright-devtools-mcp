@@ -49,11 +49,11 @@ section{padding:5rem 2rem}
 .feature .tools{font-family:var(--mono);font-size:.7rem;color:var(--accent);margin-top:.6rem;opacity:.7}
 
 /* How it works */
-.workflow{display:grid;grid-template-columns:1fr;gap:1.5rem;counter-reset:step}
-.step{display:grid;grid-template-columns:3rem 1fr;gap:1rem;align-items:start;counter-increment:step;padding:1.5rem;background:var(--surface);border-radius:12px;border:1px solid var(--border)}
-.step::before{content:counter(step);font-family:var(--mono);font-size:1.5rem;font-weight:900;color:var(--accent);width:3rem;height:3rem;display:flex;align-items:center;justify-content:center;border:2px solid var(--accent);border-radius:50%}
-.step h3{font-size:1rem;margin-bottom:.3rem}
-.step p{font-size:.85rem;color:var(--text2)}
+.workflow{display:grid;grid-template-columns:1fr;gap:1.5rem}
+.step{display:flex;gap:1rem;align-items:flex-start;padding:1.5rem;background:var(--surface);border-radius:12px;border:1px solid var(--border)}
+.step-num{font-family:var(--mono);font-size:1.3rem;font-weight:900;color:var(--accent);min-width:2.8rem;height:2.8rem;display:flex;align-items:center;justify-content:center;border:2px solid var(--accent);border-radius:50%;flex-shrink:0}
+.step-body h3{font-size:1rem;margin-bottom:.3rem;font-weight:700}
+.step-body p{font-size:.85rem;color:var(--text2);line-height:1.5}
 
 /* Code block */
 .code-block{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin:2rem 0}
@@ -177,10 +177,10 @@ footer{border-top:1px solid var(--border);padding:3rem 2rem;text-align:center;co
     <div class="section-title">使い方: リバースエンジニアリング</div>
     <div class="section-subtitle">AIとの対話でWebアプリのAPIを解析</div>
     <div class="workflow">
-      <div class="step"><div></div><div><h3>ブラウザ起動 & フロー記録開始</h3><p>AIがChromiumを起動し、操作の記録を開始します。CDPによるフルネットワークキャプチャが自動的に有効になります。</p></div></div>
-      <div class="step"><div></div><div><h3>操作をAIに指示</h3><p>「ログインページに行って」「ユーザー名にadminを入力して」「送信ボタンを押して」 — AIがPlaywrightで操作を実行しながら、全通信をキャプチャします。</p></div></div>
-      <div class="step"><div></div><div><h3>キャプチャ確認</h3><p>AIが検出したAPIコール (XHR/Fetch) を確認。リクエストヘッダー、ボディ、レスポンスの全内容が取得されています。</p></div></div>
-      <div class="step"><div></div><div><h3>API仕様書生成</h3><p>curlコマンド、Python requestsスクリプト、Markdown形式のAPI仕様書、HAR (Chrome DevTools Import用) を自動生成。</p></div></div>
+      <div class="step"><span class="step-num">1</span><div class="step-body"><h3>ブラウザ起動 & フロー記録開始</h3><p>AIがChromiumを起動し、操作の記録を開始します。CDPによるフルネットワークキャプチャが自動的に有効になります。</p></div></div>
+      <div class="step"><span class="step-num">2</span><div class="step-body"><h3>操作をAIに指示</h3><p>「ログインページに行って」「ユーザー名にadminを入力して」「送信ボタンを押して」 — AIがPlaywrightで操作を実行しながら、全通信をキャプチャします。</p></div></div>
+      <div class="step"><span class="step-num">3</span><div class="step-body"><h3>キャプチャ確認</h3><p>AIが検出したAPIコール (XHR/Fetch) を確認。リクエストヘッダー、ボディ、レスポンスの全内容が取得されています。</p></div></div>
+      <div class="step"><span class="step-num">4</span><div class="step-body"><h3>API仕様書生成</h3><p>curlコマンド、Python requestsスクリプト、Markdown形式のAPI仕様書、HAR (Chrome DevTools Import用) を自動生成。</p></div></div>
     </div>
   </div>
 </section>
