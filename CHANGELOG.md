@@ -24,3 +24,4 @@ All notable changes to this project will be documented in this file.
 - **Landing page** at GitHub Pages
 - **Dockerfile** for container deployment
 - **systemd service** configuration
+
