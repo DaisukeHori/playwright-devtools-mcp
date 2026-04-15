@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+### Changed
+- Playwright の最低バージョンを `^1.52.0` から `^1.59.1` に更新（検証済みバージョン）
+- Playwright 1.59.0 の Breaking Change を確認済み：
+  - WebKit の macOS 14 サポート削除 → Chromium 専用のため影響なし
+  - `@playwright/experimental-ct-svelte` パッケージ削除 → 未使用のため影響なし
+- 本プロジェクトで使用している Playwright API（`chromium.launch`, `page.locator`, `page.evaluate`, `mouse`, `keyboard`, `newCDPSession` 等）は全て 1.59.x でも引き続き安定
+
 ## [1.0.0] - 2025-04-14
 
 ### Added
