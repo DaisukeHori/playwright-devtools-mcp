@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+### Changed
+- Playwright v1.59.x への互換性を検証済み (Issue #3 対応)
+  - v1.59.0 の Breaking Changes (`@playwright/experimental-ct-svelte` パッケージ削除、WebKit macOS 14 サポート終了) は本 MCP サーバーの利用範囲外であり、影響なし
+  - 本サーバーで利用している `chromium`, `Browser`, `BrowserContext`, `Page`, `CDPSession` API は変更なし
+  - `npm run build` による型チェックは成功
+
 ## [1.0.0] - 2025-04-14
 
 ### Added
